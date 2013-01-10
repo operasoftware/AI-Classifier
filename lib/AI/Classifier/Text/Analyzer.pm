@@ -82,7 +82,13 @@ __END__
 =head1 DESCRIPTION
 
 Computes feature vectors of text using some heuristics and adds words count 
-(using L<Text::WordCounter> by default). 
+(using L<Text::WordCounter> by default).
+
+The object is immutable - but some methods use a second parameter as an accumulator for the
+features found in given text.
+
+It uses some specific values and methods that work for our case - but are not guaranteed
+to bring good results universally - see the source for details!
 
 =head1 ATTRIBUTES
 
@@ -110,6 +116,15 @@ Creates a new AI::Classifier::Text::Analyzer object. Both arguments are optional
 =item C<analyze($document, $features)>
 
 Computes the feature vector of the given document and adds the initial vector of C<$features>.
+
+=item C<analyze_urls($document, $features)>
+
+Computes a vector special url related features of a given text - currently there are used 
+C<NO_URLS>, C<MANY_URLS> and C<REPEATED_URLS> features.  
+
+=item C<filter($document)>
+
+Removes html related parts from the text.
 
 =back
 
