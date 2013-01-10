@@ -54,8 +54,10 @@ __END__
 =head1 DESCRIPTION
 
 AI::Classifier::Text combines a lexical analyzer (by default being
-AI::Classifier::Text::Analyzer) and a classifier (like AI::NaiveBayes) to
+L<AI::Classifier::Text::Analyzer>) and a classifier (like AI::NaiveBayes) to
 perform text classification.
+
+This is partially based on AI::TextCategorizer.
 
 =head1 ATTRIBUTES
 
@@ -83,7 +85,7 @@ vector. This defaults to C<AI::Classifier::Text::Analyzer>.
 
 =item C<< new(classifier => $foo) >>
 
-Creates a new AI::Classifier::Text object. The classifier argument is mandatory.
+Creates a new C<AI::Classifier::Text> object. The classifier argument is mandatory.
 
 =item C<classify($document, $features)>
 
@@ -96,6 +98,6 @@ the C<classifier> object's C<classify> method.
 
 =head1 SEE ALSO
 
-AI::NaiveBayes (3), AI::Classifier(3)
+AI::NaiveBayes (3), AI::Categorizer(3)
 
 =cut
