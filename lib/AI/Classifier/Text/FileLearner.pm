@@ -52,37 +52,34 @@ sub next {
     };
 }
 
-sub internal_classifier {
+sub teach_it {
     my $self = shift;
     my $learner = $self->learner;
     while ( my $data  = $self->next ) {
         normalize( $data->{features} );
-        if (defined $self->term_weighting) {
-            weight_terms($data, type => $self->term_weighting);
-        }
+        $self->weight_terms($data);
         $learner->add_example( 
             attributes => $data->{features},
             labels     => $data->{categories}
         );
     }
-
-    return $learner->classifier();
 }
 
 
 sub classifier {
     my $self = shift;
+    $self->teach_it;
     return AI::Classifier::Text->new(
-        classifier => $self->internal_classifier,
+        classifier => $self->learner->classifier,
         analyzer => $self->analyzer,
     );
 }
 
 
 sub weight_terms {
-    my ($doc, %args) = @_;
+    my ( $self, $doc ) = @_;
     my $f = $doc->{features};
-    given ($args{type}) {
+    given ($self->term_weighting) {
         when ('n') {
             my $max_tf = max values %$f;
             $_ = 0.5 + 0.5 * $_ / $max_tf for values %$f;
@@ -90,8 +87,10 @@ sub weight_terms {
         when ('b') {
             $_ = $_ ? 1 : 0 for values %$f;
         }
+        when (undef){
+        }
         default {
-            croak 'Unknown weighting type: '.$args{type};
+            croak 'Unknown weighting type: '.$self->term_weighting;
         }
     }
 }
