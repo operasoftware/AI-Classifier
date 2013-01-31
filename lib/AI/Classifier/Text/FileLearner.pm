@@ -5,6 +5,7 @@ use 5.010;
 
 use Moose;
 use File::Find::Rule;
+use File::Spec;
 use List::Util 'max';
 use Carp 'croak';
 use AI::NaiveBayes::Learner;
@@ -25,14 +26,21 @@ sub _build_iterator {
     return $rule;
 }
 
+sub get_category {
+    my( $self, $file ) = @_;
+    my $training_dir = $self->training_dir;
+    my $rest = File::Spec->abs2rel( $file, $training_dir );
+    my @dirs = File::Spec->splitdir( $rest );
+    return $dirs[0]
+}
+
+
 sub next {
     my $self = shift;
 
     my $file = $self->iterator->match;
     return if !defined($file);
-    my $training_dir = $self->training_dir;
-    $file =~ /^$training_dir(.*?)\//;
-    my $category = $1;
+    my $category = $self->get_category( $file );
     open(my $fh, "<:encoding(UTF-8)", $file )
     || Carp::croak(
                 "Unable to read the specified training file: $file\n");
@@ -156,9 +164,9 @@ __END__
 
     use AI::Classifier::Text::FileLearner;
 
-    my $iterator = AI::Classifier::Text::FileLearner->new( training_dir => 't/data/training_set_ordered/' );
+    my $learner = AI::Classifier::Text::FileLearner->new( training_dir => 't/data/training_set_ordered/' );
 
-    my $classifier = $iterator->classifier;
+    my $classifier = $learner->classifier;
 
 =head1 DESCRIPTION
 
