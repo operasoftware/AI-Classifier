@@ -16,6 +16,24 @@ has analyzer => ( is => 'ro', default => sub{ AI::Classifier::Text::Analyzer->ne
 # for store/load only, don't touch unless you really know what you're doing
 has classifier_class => (is => 'bare');
 
+around BUILDARGS => sub {
+    my $orig  = shift;
+    my $class = shift;
+    my %args = @_;
+
+    if( $args{ training_data } ){
+        require AI::NaiveBayes::Learner;
+        my $learner = AI::NaiveBayes::Learner->new(features_kept => 0.5);
+        for my $example ( @{ $args{ training_data } } ){
+            $learner->add_example( %$example );
+        }
+        my $classifier = $learner->classifier;
+        $args{ classifier } = $classifier;
+        delete $args{ training_data };
+    }
+    return $class->$orig( %args );
+};
+
 before store => sub {
     my $self = shift;
     $self->{classifier_class} = $self->classifier->meta->name;
@@ -43,21 +61,49 @@ __END__
 
 =head1 SYNOPSIS
 
-    my $cl = AI::Classifier::Text->new(classifier => AI::NaiveBayes->new(...));
-    my $res = $cl->classify("do cats eat bats?");
-    $res    = $cl->classify("do cats eat bats?", { new_user => 1 });
+    my $cl = AI::Classifier::Text->new(
+      training_data => [
+           {  
+               attributes => _hash(qw(sheep very valuable farming)),
+               labels => ['farming']
+           },
+           {  
+               attributes => _hash(qw(farming requires many kinds animals)),
+               labels => ['farming']
+           },
+           {  
+               attributes => _hash(qw(vampires drink blood vampires may staked)),
+               labels => ['vampire']
+           },
+    );
+    # the above creates a default AI::NaiveBayes classifier and feeds it the training data
+
+    my $res = $cl->classify("I would like to begin farming sheep" );
+
+    $res    = $cl->classify("I would like to begin farming sheep", { new_user => 1 });
+
+    print $res->best_category; 
     $cl->store('some-file');
     # later
     my $cl = AI::Classifier::Text->load('some-file');
-    my $res = $cl->classify("do cats eat bats?");
+    my $res = $cl->classify("do cats eat sheep?");
 
 =head1 DESCRIPTION
 
-AI::Classifier::Text combines a lexical analyzer (by default being
-L<AI::Classifier::Text::Analyzer>) and a classifier (like AI::NaiveBayes) to
-perform text classification.
+C<AI::Classifier::Text> combines a lexical analyzer (by default being
+L<AI::Classifier::Text::Analyzer>) and a compatible classifier to perform text classification.
 
-This is partially based on AI::TextCategorizer.
+The constructor requires either a compatible trained classifier (like C<AI::NaiveBayes>) - or
+training_data parameter with a list of training examples.
+In that later case it creates the default
+C<AI::NaiveBayes> classifier and traubs it before constructing the C<AI::Classifier::Text> object.
+
+If your training data does not feet into the computer memory, 
+or you want a different classifier to use - than train the classifier first and then pass 
+it to the C<AI::Classifier::Text> constructor.
+
+
+This is partially based on C<AI::TextCategorizer>.
 
 =head1 ATTRIBUTES
 
@@ -67,7 +113,7 @@ This is partially based on AI::TextCategorizer.
 
 An object that'll perform classification of supplied feature vectors. Has to
 define a C<classify()> method, which accepts a hash refence. The return value of
-C<AI::Classifier::Text->classify()> will be the return value of C<classifier>'s
+AI::Classifier::Text->classify() will be the return value of C<classifier>'s
 C<classify()> method.
 
 This attribute has to be supplied to the C<new()> method during object creation.
@@ -85,7 +131,8 @@ vector. This defaults to C<AI::Classifier::Text::Analyzer>.
 
 =item C<< new(classifier => $foo) >>
 
-Creates a new C<AI::Classifier::Text> object. The classifier argument is mandatory.
+Creates a new C<AI::Classifier::Text> object. It requires either the classifier 
+or the training data passed to it.
 
 =item C<classify($document, $features)>
 
